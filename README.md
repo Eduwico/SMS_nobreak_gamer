@@ -1,5 +1,7 @@
 # SMS_nobreak_gamer
 attempt to integrate an SMS nobreak to Home Assistant
+STILL NOT FUNCTIONAL. DEBUGGING IN PROGRESS.
+
 
 # Home Assistant Custom Add-ons
 
