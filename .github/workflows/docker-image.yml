@@ -3,11 +3,9 @@ name: Publicar Imagem Docker do Add-on
 on:
   push:
     branches:
-      - main 
-      # Ou a branch principal do seu repositório
+      - main # Ou a branch principal do seu repositório
     tags:
-      - 'v*.*.*' 
-      # Opcional: Dispara em tags como v1.0.0, v1.1.0 etc.
+      - 'v*.*.*' # Dispara em tags como v1.0.0, v1.1.0 etc.
 
 env:
   # Nome da imagem no GHCR. Ajuste conforme necessário.
@@ -19,17 +17,18 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write 
-      # Permissão essencial para escrever no GHCR
+      packages: write # Permissão essencial para escrever no GHCR
 
     steps:
       - name: Checkout do código
         uses: actions/checkout@v4
 
       - name: Configurar QEMU (para build multi-arquitetura)
+        # Essencial para emular arquiteturas diferentes da máquina de build (ubuntu-latest é amd64)
         uses: docker/setup-qemu-action@v3
 
       - name: Configurar Buildx (para build multi-arquitetura)
+        # Habilita o Buildx, que permite construir imagens para múltiplas plataformas
         uses: docker/setup-buildx-action@v3
 
       - name: Fazer login no GitHub Container Registry
@@ -37,8 +36,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }} 
-          # Token automático fornecido pelo GitHub Actions
+          password: ${{ secrets.GITHUB_TOKEN }} # Token automático fornecido pelo GitHub Actions
 
       - name: Gerar tags e metadados para a imagem
         id: meta
@@ -54,14 +52,17 @@ jobs:
       - name: Construir e enviar a imagem Docker
         uses: docker/build-push-action@v5
         with:
-          context: . 
-          # Caminho para a pasta do seu Dockerfile
-          platforms: linux/amd64,linux/arm64 
-          # Arquiteturas a serem construídas
-          push: true
+          context: . # Caminho para a pasta do seu Dockerfile (assumindo que está na raiz do repo)
+          # Plataformas a serem construídas.
+          # Correspondem às arquiteturas listadas no seu config.yaml:
+          # armhf -> linux/arm/v6 (ou v7 se compatível)
+          # armv7 -> linux/arm/v7
+          # aarch64 -> linux/arm64
+          # amd64 -> linux/amd64
+          # i386 -> linux/386
+          platforms: linux/amd64,linux/arm64,linux/arm/v7,linux/arm/v6,linux/386
+          push: true # Define para enviar a imagem para o registro
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-          #removido para multi arquitetura  BUILD_FROM=ghcr.io/home-assistant/amd64-base:latest
-
-
+          # build-args não são necessários aqui, pois o Dockerfile usa TARGETARCH
+          # que é automaticamente definido pelo buildx para cada plataforma.
