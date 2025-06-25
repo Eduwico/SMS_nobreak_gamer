@@ -2,7 +2,7 @@
 # Baseado nas melhores práticas para add-ons do Home Assistant
 
 ARG TARGETARCH
-FROM ghcr.io/home-assistant/${TARGETARCH}-base:latest
+FROM ghcr.io/home-assistant/${TARGETARCH/arm64/aarch64}-base:latest
 
 # Instala dependências do sistema necessárias para Python e compilação
 # Inclui pacotes comuns para compilação de extensões Python e acesso a dispositivos
