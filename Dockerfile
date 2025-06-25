@@ -1,8 +1,10 @@
 # Dockerfile melhorado para SMS Gamer UPS Monitor
 # Baseado nas melhores práticas para add-ons do Home Assistant
 
-ARG BUILD_FROM # <--- Mude de TARGETARCH para BUILD_FROM
-FROM $BUILD_FROM # <--- Use o argumento BUILD_FROM aqui
+ARG BUILD_FROM 
+# <--- Mude de TARGETARCH para BUILD_FROM
+FROM $BUILD_FROM 
+# <--- Use o argumento BUILD_FROM aqui
 
 # Instala dependências do sistema necessárias para Python e compilação
 # Inclui pacotes comuns para compilação de extensões Python e acesso a dispositivos
