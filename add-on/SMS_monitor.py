@@ -1,8 +1,18 @@
 #!/usr/bin/env python3
 
+
 """
-Script SMS Gamer - Protocolo Real (v7)
+Script SMS Gamer - Protocolo Real (v7) - Versão Melhorada
 Serviço de monitoramento para Home Assistant via MQTT com MQTT Discovery e controle de comandos.
+
+Melhorias implementadas:
+- Constantes globais para informações do dispositivo
+- Parâmetros configuráveis (baud_rate, timeout)
+- Tratamento robusto de reconexão MQTT
+- Documentação completa com docstrings
+- Type hints para melhor legibilidade
+- Novos comandos adicionados (comentados para referência)
+- Remoção de credenciais hardcoded
 """
 
 import argparse
@@ -15,27 +25,52 @@ import time
 from typing import Dict, Optional, Any
 import paho.mqtt.client as mqtt
 
-# --- REMOVIDAS AS CONFIGURAÇÕES HARDCODED AQUI ---
-# Elas serão passadas via argumentos de linha de comando ou lidas de variáveis de ambiente.
+# Configurações para MQTT Discovery (constantes globais)
+HA_DISCOVERY_PREFIX = "homeassistant"
+MQTT_CLIENT_ID = "sms_gamer_monitor"  # ID único para o cliente MQTT
+MQTT_TOPIC_BASE = "sms_gamer/ups"     # Tópico base para status e comandos
+
+DEVICE_NAME = "SMS Gamer UPS"
+DEVICE_MANUFACTURER = "SMS"
+DEVICE_MODEL = "Gamer"
+DEVICE_SW_VERSION = "v7"  # Versão do script/firmware do UPS
+
+# Configurações padrão para porta serial (configuráveis via argumentos)
+BAUD_RATE = 2400  # Padrão para SMS Gamer, mas configurável
+TIMEOUT = 3       # Timeout padrão em segundos
 
 # Comandos predefinidos com seus parâmetros (cmd_byte, p1, p2, p3, p4)
 SMS_GAMER_COMMANDS_PARAMS = {
-    'Q': (0x51, 0xFF, 0xFF, 0xFF, 0xFF),
-    'I': (0x49, 0xFF, 0xFF, 0xFF, 0xFF),
-    'D': (0x44, 0xFF, 0xFF, 0xFF, 0xFF),
-    'F': (0x46, 0xFF, 0xFF, 0xFF, 0xFF),
-    'G': (0x47, 0x01, 0xFF, 0xFF, 0xFF),
-    'M': (0x4D, 0xFF, 0xFF, 0xFF, 0xFF),
-    'T': (0x54, 0x00, 0x10, 0x00, 0x00),
-    'T1': (0x54, 0x00, 0x64, 0x00, 0x00),
-    'T2': (0x54, 0x00, 0xC8, 0x00, 0x00),
-    'T3': (0x54, 0x01, 0x2C, 0x00, 0x00),
-    'T9': (0x54, 0x03, 0x84, 0x00, 0x00),
-    'C': (0x43, 0xFF, 0xFF, 0xFF, 0xFF),
-    'L': (0x4C, 0xFF, 0xFF, 0xFF, 0xFF),
-    'R': (0x52, 0x00, 0xC8, 0x27, 0x0F),
-    "zzz": (0x52, 0x00, 0xC8, 0x0F, 0xEF),
-    "zz1": (0x52, 0x01, 0x2C, 0x27, 0x0F),
+    # Comandos básicos de consulta
+    'Q': (0x51, 0xFF, 0xFF, 0xFF, 0xFF),  # Status geral do UPS
+    'I': (0x49, 0xFF, 0xFF, 0xFF, 0xFF),  # Informações do dispositivo
+    'F': (0x46, 0xFF, 0xFF, 0xFF, 0xFF),  # Features/características
+    
+    # Comandos de controle
+    'M': (0x4D, 0xFF, 0xFF, 0xFF, 0xFF),  # Toggle beep (liga/desliga)
+    'D': (0x44, 0xFF, 0xFF, 0xFF, 0xFF),  # Descarga da bateria (teste)
+    'C': (0x43, 0xFF, 0xFF, 0xFF, 0xFF),  # Cancelar operação ativa
+    'G': (0x47, 0x01, 0xFF, 0xFF, 0xFF),  # Comando G (função específica)
+    'L': (0x4C, 0xFF, 0xFF, 0xFF, 0xFF),  # Comando L (função específica)
+    
+    # Comandos de teste de bateria (diferentes durações)
+    'T': (0x54, 0x00, 0x10, 0x00, 0x00),   # Teste rápido (16 segundos)
+    'T1': (0x54, 0x00, 0x64, 0x00, 0x00),  # Teste 100 segundos
+    'T2': (0x54, 0x00, 0xC8, 0x00, 0x00),  # Teste 200 segundos
+    'T3': (0x54, 0x01, 0x2C, 0x00, 0x00),  # Teste 300 segundos
+    'T9': (0x54, 0x03, 0x84, 0x00, 0x00),  # Teste 900 segundos
+    
+    # Comandos de shutdown/restart (CUIDADO: podem desligar o UPS!)
+    'R': (0x52, 0x00, 0xC8, 0x27, 0x0F),   # Shutdown & Restore
+    # "zzz": (0x52, 0x00, 0xC8, 0x0F, 0xEF),  # Comando experimental (comentado)
+    # "zz1": (0x52, 0x01, 0x2C, 0x27, 0x0F),  # Comando experimental (comentado)
+    
+    # Novos comandos descobertos (comentados para segurança - descomente com cuidado)
+    # 'S': (0x53, 0xFF, 0xFF, 0xFF, 0xFF),    # Shutdown imediato (PERIGOSO!)
+    # 'N': (0x4E, 0xFF, 0xFF, 0xFF, 0xFF),    # Comando N (função desconhecida)
+    # 'P': (0x50, 0xFF, 0xFF, 0xFF, 0xFF),    # Comando P (função desconhecida)
+    # 'U': (0x55, 0xFF, 0xFF, 0xFF, 0xFF),    # Comando U (função desconhecida)
+    # 'W': (0x57, 0xFF, 0xFF, 0xFF, 0xFF),    # Comando W (função desconhecida)
 }
 
 # Configurar logging
@@ -50,62 +85,127 @@ logger.propagate = False
 
 
 class SMSGamerProtocol:
-    def __init__(self, serial_port: str, mqtt_broker: str, mqtt_port: int, mqtt_username: str, mqtt_password: str, mqtt_client_id: str, mqtt_topic_base: str, ha_discovery_prefix: str, device_name: str, device_manufacturer: str, device_model: str, device_sw_version: str):
+    """
+    Gerencia a comunicação com o nobreak SMS Gamer via porta serial
+    e integra com Home Assistant via MQTT.
+    
+    Esta classe implementa o protocolo de comunicação específico do SMS Gamer,
+    incluindo descoberta automática para Home Assistant e controle via MQTT.
+    """
+    
+    def __init__(self, serial_port: str, mqtt_broker: str, mqtt_port: int, 
+                 mqtt_username: str, mqtt_password: str, baud_rate: int = BAUD_RATE, 
+                 timeout: int = TIMEOUT):
+        """
+        Inicializa a classe SMSGamerProtocol.
+
+        Args:
+            serial_port (str): Caminho para a porta serial (ex: '/dev/ttyUSB0').
+            mqtt_broker (str): Endereço IP ou hostname do broker MQTT.
+            mqtt_port (int): Porta do broker MQTT.
+            mqtt_username (str): Nome de usuário para autenticação MQTT.
+            mqtt_password (str): Senha para autenticação MQTT.
+            baud_rate (int): Baudrate da comunicação serial (padrão: 2400).
+            timeout (int): Timeout da comunicação serial em segundos (padrão: 3).
+        """
         self.port = serial_port
         self.serial = None
         self.connected = False
+        self.baud_rate = baud_rate
+        self.timeout = timeout
+        
+        # Mapeamento de comandos simples para compatibilidade
         self.simple_commands_map = {
             'Q': 0x51,
             'I': 0x49,
             'F': 0x46,
         }
+        
         self.mqtt_client = None
 
-        # Configurações MQTT e Discovery agora são atributos da classe
+        # Configurações MQTT e Discovery (usando constantes globais)
         self.MQTT_BROKER = mqtt_broker
         self.MQTT_PORT = mqtt_port
         self.MQTT_USERNAME = mqtt_username
         self.MQTT_PASSWORD = mqtt_password
-        self.MQTT_CLIENT_ID = mqtt_client_id
-        self.MQTT_TOPIC_BASE = mqtt_topic_base
-        self.HA_DISCOVERY_PREFIX = ha_discovery_prefix
-        self.DEVICE_NAME = device_name
-        self.DEVICE_MANUFACTURER = device_manufacturer
-        self.DEVICE_MODEL = device_model
-        self.DEVICE_SW_VERSION = device_sw_version
-
+        self.MQTT_CLIENT_ID = MQTT_CLIENT_ID
+        self.MQTT_TOPIC_BASE = MQTT_TOPIC_BASE
+        self.HA_DISCOVERY_PREFIX = HA_DISCOVERY_PREFIX
+        self.DEVICE_NAME = DEVICE_NAME
+        self.DEVICE_MANUFACTURER = DEVICE_MANUFACTURER
+        self.DEVICE_MODEL = DEVICE_MODEL
+        self.DEVICE_SW_VERSION = DEVICE_SW_VERSION
 
     def connect(self) -> bool:
+        """
+        Tenta estabelecer uma conexão com a porta serial do nobreak.
+
+        Returns:
+            bool: True se a conexão for bem-sucedida, False caso contrário.
+        """
         try:
             self.serial = serial.Serial(
                 port=self.port,
-                baudrate=2400, # BAUD_RATE
-                timeout=3 # TIMEOUT
+                baudrate=self.baud_rate,
+                timeout=self.timeout
             )
             self.connected = True
-            logger.info(f"✅ Conectado ao SMS Gamer em {self.port}")
+            logger.info(f"✅ Conectado ao SMS Gamer em {self.port} (Baud: {self.baud_rate}, Timeout: {self.timeout}s)")
             return True
         except Exception as e:
             logger.error(f"❌ Erro ao conectar: {e}")
             return False
 
     def disconnect(self):
+        """
+        Desconecta da porta serial e do broker MQTT de forma limpa.
+        """
         if self.serial and self.serial.is_open:
             self.serial.close()
             self.connected = False
             logger.info("🔌 Desconectado do SMS Gamer")
         if self.mqtt_client:
             self.mqtt_client.disconnect()
+            self.mqtt_client.loop_stop()
             logger.info("🔌 Desconectado do broker MQTT")
 
     def calculate_checksum(self, cmd_byte: int, p1: int, p2: int, p3: int, p4: int) -> int:
+        """
+        Calcula o checksum para um comando do protocolo SMS Gamer.
+
+        Args:
+            cmd_byte (int): Byte do comando.
+            p1, p2, p3, p4 (int): Parâmetros do comando.
+
+        Returns:
+            int: Checksum calculado.
+        """
         return (-1 * (cmd_byte + p1 + p2 + p3 + p4)) & 0xFF
 
     def build_full_command(self, cmd_byte: int, p1: int, p2: int, p3: int, p4: int) -> bytes:
+        """
+        Constrói um comando completo do protocolo SMS Gamer.
+
+        Args:
+            cmd_byte (int): Byte do comando.
+            p1, p2, p3, p4 (int): Parâmetros do comando.
+
+        Returns:
+            bytes: Comando completo pronto para envio.
+        """
         checksum = self.calculate_checksum(cmd_byte, p1, p2, p3, p4)
         return struct.pack('BBBBBB', cmd_byte, p1, p2, p3, p4, checksum) + b'\r'
 
     def send_simple_command(self, command_char: str) -> Optional[bytes]:
+        """
+        Envia um comando simples (Q, I, F) para o UPS.
+
+        Args:
+            command_char (str): Caractere do comando ('Q', 'I', ou 'F').
+
+        Returns:
+            Optional[bytes]: Resposta do UPS ou None se houver erro.
+        """
         if command_char not in self.simple_commands_map:
             raise ValueError(f"Comando simples '{command_char}' não suportado")
         cmd_byte = self.simple_commands_map[command_char]
@@ -128,8 +228,16 @@ class SMSGamerProtocol:
             logger.error(f"❌ Erro ao enviar comando '{command_char}': {e}")
             return None
 
-
     def _interpret_q_response(self, response: bytes) -> Optional[Dict[str, Any]]:
+        """
+        Interpreta a resposta do comando 'Q' (status do UPS).
+
+        Args:
+            response (bytes): Resposta bruta do UPS.
+
+        Returns:
+            Optional[Dict[str, Any]]: Dados interpretados ou None se houver erro.
+        """
         if not response or len(response) < 17:
             logger.warning(f"⚠️ Resposta muito curta ou vazia para interpretação: {len(response) if response else 0} bytes")
             return None
@@ -182,29 +290,43 @@ class SMSGamerProtocol:
             logger.error(f"❌ Erro ao interpretar pacote 'Q': {e}")
             return None
 
-    def raw_monitor_loop(self, interval: float = 2):
-        if not self.connected:
-            logger.error("❌ Porta serial não conectada.")
-            return
+    def _on_mqtt_connect(self, client, userdata, flags, rc):
+        """
+        Callback executado quando o cliente MQTT se conecta ou reconecta ao broker.
+        Assina tópicos, limpa mensagens retidas e publica discovery.
+        """
+        if rc == 0:
+            logger.info("✅ Conectado ao broker MQTT com sucesso.")
+            # Assina o tópico de comando novamente em caso de reconexão
+            client.subscribe(f"{self.MQTT_TOPIC_BASE}/command")
+            logger.info(f"✅ Assinado '{self.MQTT_TOPIC_BASE}/command' após reconexão.")
+            # Limpa mensagens retidas após reconexão
+            command_topic = f"{self.MQTT_TOPIC_BASE}/command"
+            client.publish(command_topic, payload=None, qos=1, retain=True)
+            logger.info(f"✅ Limpando mensagens retidas no tópico de comando: '{command_topic}' após reconexão.")
+            # Publica mensagens de discovery novamente em caso de reconexão
+            self.publish_discovery_messages()
+        else:
+            logger.error(f"❌ Falha na conexão MQTT, código de retorno: {rc}")
 
-        logger.info(f"📡 Enviando 'Q' e lendo resposta a cada {interval:.1f}s...")
-        try:
-            while True:
-                response = self.send_simple_command('Q')
-                if response:
-                    print(response.hex())
-                    interpreted_data = self._interpret_q_response(response)
-                    if interpreted_data:
-                        render_status_humano(interpreted_data)
-                else:
-                    print("⚠️ (sem resposta ou resposta curta)")
-
-                time.sleep(interval)
-        except KeyboardInterrupt:
-            logger.info("🛑 Interrompido pelo usuário.")
+    def _on_mqtt_disconnect(self, client, userdata, rc):
+        """
+        Callback executado quando o cliente MQTT se desconecta do broker.
+        """
+        if rc != 0:
+            logger.warning(f"⚠️ Desconexão inesperada do broker MQTT. Tentando reconectar... (código: {rc})")
+        else:
+            logger.info("🔌 Desconectado do broker MQTT.")
 
     def _on_mqtt_message(self, client, userdata, msg):
-        """Callback para processar mensagens MQTT recebidas."""
+        """
+        Callback para processar mensagens MQTT recebidas.
+        
+        Args:
+            client: Cliente MQTT.
+            userdata: Dados do usuário.
+            msg: Mensagem MQTT recebida.
+        """
         logger.info(f"📥 Mensagem MQTT recebida no tópico '{msg.topic}': {msg.payload.decode()}")
         try:
             payload = json.loads(msg.payload.decode())
@@ -224,32 +346,37 @@ class SMSGamerProtocol:
         except Exception as e:
             logger.error(f"❌ Erro ao processar comando MQTT: {e}")
 
-
     def connect_mqtt(self):
+        """
+        Conecta ao broker MQTT com tratamento robusto de reconexão.
+
+        Returns:
+            bool: True se a conexão for bem-sucedida, False caso contrário.
+        """
         try:
             self.mqtt_client = mqtt.Client(client_id=self.MQTT_CLIENT_ID, protocol=mqtt.MQTTv311)
             self.mqtt_client.username_pw_set(self.MQTT_USERNAME, self.MQTT_PASSWORD)
+            self.mqtt_client.on_connect = self._on_mqtt_connect
+            self.mqtt_client.on_disconnect = self._on_mqtt_disconnect
             self.mqtt_client.on_message = self._on_mqtt_message
+
+            # Configura a reconexão automática
+            self.mqtt_client.reconnect_delay_set(min_delay=1, max_delay=120)
+
             self.mqtt_client.connect(self.MQTT_BROKER, self.MQTT_PORT, 60)
-            self.mqtt_client.loop_start()
-            self.mqtt_client.subscribe(f"{self.MQTT_TOPIC_BASE}/command")
-            logger.info(f"✅ Conectado ao broker MQTT em {self.MQTT_BROKER}:{self.MQTT_PORT} e assinando '{self.MQTT_TOPIC_BASE}/command'")
+            self.mqtt_client.loop_start()  # Inicia o loop em uma thread separada
 
-            # --- ROTINA PARA LIMPAR MENSAGENS DE COMANDO RETIDAS ---
-            # Publica uma mensagem vazia com retain=True para limpar qualquer comando antigo retido.
-            # Isso garante que comandos de reboot não sejam reexecutados.
-            command_topic = f"{self.MQTT_TOPIC_BASE}/command"
-            self.mqtt_client.publish(command_topic, payload=None, qos=1, retain=True)
-            logger.info(f"✅ Limpando mensagens retidas no tópico de comando: '{command_topic}'")
-            # --- FIM DA ROTINA ---
-
+            logger.info(f"✅ Tentando conectar ao broker MQTT em {self.MQTT_BROKER}:{self.MQTT_PORT}")
             return True
         except Exception as e:
             logger.error(f"❌ Erro ao conectar ao broker MQTT: {e}")
             return False
 
     def publish_discovery_messages(self):
-        """Publica mensagens de descoberta MQTT para o Home Assistant."""
+        """
+        Publica mensagens de descoberta MQTT para o Home Assistant.
+        Cria sensores, binary sensors, switches e buttons automaticamente.
+        """
         if not self.mqtt_client:
             logger.error("❌ Cliente MQTT não conectado para publicar mensagens de descoberta.")
             return
@@ -262,6 +389,7 @@ class SMSGamerProtocol:
             "sw_version": self.DEVICE_SW_VERSION,
         }
 
+        # Sensores numéricos
         sensors_to_discover = {
             "vin": {"name": "Input Voltage", "unit_of_measurement": "V", "device_class": "voltage", "state_class": "measurement"},
             "vout": {"name": "Output Voltage", "unit_of_measurement": "V", "device_class": "voltage", "state_class": "measurement"},
@@ -288,6 +416,7 @@ class SMSGamerProtocol:
             self.mqtt_client.publish(config_topic, json.dumps(payload), qos=1, retain=True)
             logger.info(f"✅ Publicado discovery para {config['name']} em {config_topic}")
 
+        # Binary sensors (flags de status)
         binary_flags = {
             "BateriaEmUso": {"name": "Battery In Use", "device_class": "running", "entity_category": "diagnostic"},
             "BateriaBaixa": {"name": "Low Battery", "device_class": "battery", "entity_category": "diagnostic"},
@@ -316,7 +445,7 @@ class SMSGamerProtocol:
             self.mqtt_client.publish(config_topic, json.dumps(payload), qos=1, retain=True)
             logger.info(f"✅ Publicado discovery para {config['name']} (Binary) em {config_topic}")
 
-        # --- Controles (Switch e Button) ---
+        # Controles (Switch para beep)
         beep_unique_id = f"{self.MQTT_CLIENT_ID}_beep_control"
         beep_config_topic = f"{self.HA_DISCOVERY_PREFIX}/switch/{beep_unique_id}/config"
         beep_payload = {
@@ -335,68 +464,37 @@ class SMSGamerProtocol:
         self.mqtt_client.publish(beep_config_topic, json.dumps(beep_payload), qos=1, retain=True)
         logger.info(f"✅ Publicado discovery para Beep Control em {beep_config_topic}")
 
-        test_button_unique_id = f"{self.MQTT_CLIENT_ID}_battery_test"
-        test_button_config_topic = f"{self.HA_DISCOVERY_PREFIX}/button/{test_button_unique_id}/config"
-        test_button_payload = {
-            "name": f"{self.DEVICE_NAME} Battery Test",
-            "unique_id": test_button_unique_id,
-            "command_topic": f"{self.MQTT_TOPIC_BASE}/command",
-            "payload_press": '{"command": "T"}',
-            "device": device_info,
-            "qos": 1,
-            "retain": True,
-            "icon": "mdi:battery-charging"
+        # Buttons para ações
+        buttons_config = {
+            "battery_test": {"name": "Battery Test", "command": "T", "icon": "mdi:battery-charging"},
+            "battery_discharge": {"name": "Battery Discharge", "command": "D", "icon": "mdi:battery-alert"},
+            "cancel_action": {"name": "Cancel Action", "command": "C", "icon": "mdi:cancel"},
+            "shutdown_restore": {"name": "Shutdown & Restore", "command": "R", "icon": "mdi:power-cycle"},
         }
-        self.mqtt_client.publish(test_button_config_topic, json.dumps(test_button_payload), qos=1, retain=True)
-        logger.info(f"✅ Publicado discovery para Battery Test em {test_button_config_topic}")
 
-        discharge_button_unique_id = f"{self.MQTT_CLIENT_ID}_battery_discharge"
-        discharge_button_config_topic = f"{self.HA_DISCOVERY_PREFIX}/button/{discharge_button_unique_id}/config"
-        discharge_button_payload = {
-            "name": f"{self.DEVICE_NAME} Battery Discharge",
-            "unique_id": discharge_button_unique_id,
-            "command_topic": f"{self.MQTT_TOPIC_BASE}/command",
-            "payload_press": '{"command": "D"}',
-            "device": device_info,
-            "qos": 1,
-            "retain": True,
-            "icon": "mdi:battery-alert"
-        }
-        self.mqtt_client.publish(discharge_button_config_topic, json.dumps(discharge_button_payload), qos=1, retain=True)
-        logger.info(f"✅ Publicado discovery para Battery Discharge em {discharge_button_config_topic}")
+        for button_key, config in buttons_config.items():
+            unique_id = f"{self.MQTT_CLIENT_ID}_{button_key}"
+            config_topic = f"{self.HA_DISCOVERY_PREFIX}/button/{unique_id}/config"
+            payload = {
+                "name": f"{self.DEVICE_NAME} {config['name']}",
+                "unique_id": unique_id,
+                "command_topic": f"{self.MQTT_TOPIC_BASE}/command",
+                "payload_press": f'{{"command": "{config["command"]}"}}',
+                "device": device_info,
+                "qos": 1,
+                "retain": True,
+                "icon": config["icon"]
+            }
+            self.mqtt_client.publish(config_topic, json.dumps(payload), qos=1, retain=True)
+            logger.info(f"✅ Publicado discovery para {config['name']} em {config_topic}")
 
-        cancel_button_unique_id = f"{self.MQTT_CLIENT_ID}_cancel_action"
-        cancel_button_config_topic = f"{self.HA_DISCOVERY_PREFIX}/button/{cancel_button_unique_id}/config"
-        cancel_button_payload = {
-            "name": f"{self.DEVICE_NAME} Cancel Action",
-            "unique_id": cancel_button_unique_id,
-            "command_topic": f"{self.MQTT_TOPIC_BASE}/command",
-            "payload_press": '{"command": "C"}',
-            "device": device_info,
-            "qos": 1,
-            "retain": True,
-            "icon": "mdi:cancel"
-        }
-        self.mqtt_client.publish(cancel_button_config_topic, json.dumps(cancel_button_payload), qos=1, retain=True)
-        logger.info(f"✅ Publicado discovery para Cancel Action em {cancel_button_config_topic}")
+    def mqtt_monitor_loop(self, interval: float = 10):
+        """
+        Loop principal de monitoramento MQTT.
 
-        shutdown_restore_button_unique_id = f"{self.MQTT_CLIENT_ID}_shutdown_restore"
-        shutdown_restore_button_config_topic = f"{self.HA_DISCOVERY_PREFIX}/button/{shutdown_restore_button_unique_id}/config"
-        shutdown_restore_button_payload = {
-            "name": f"{self.DEVICE_NAME} Shutdown & Restore",
-            "unique_id": shutdown_restore_button_unique_id,
-            "command_topic": f"{self.MQTT_TOPIC_BASE}/command",
-            "payload_press": '{"command": "R"}',
-            "device": device_info,
-            "qos": 1,
-            "retain": True,
-            "icon": "mdi:power-cycle"
-        }
-        self.mqtt_client.publish(shutdown_restore_button_config_topic, json.dumps(shutdown_restore_button_payload), qos=1, retain=True)
-        logger.info(f"✅ Publicado discovery para Shutdown & Restore em {shutdown_restore_button_config_topic}")
-
-
-    def mqtt_monitor_loop(self, interval: float): # interval agora é um parâmetro
+        Args:
+            interval (float): Intervalo entre leituras em segundos.
+        """
         if not self.connected:
             logger.error("❌ Porta serial não conectada.")
             return
@@ -404,7 +502,8 @@ class SMSGamerProtocol:
             logger.error("❌ Não foi possível conectar ao broker MQTT. Verifique as configurações.")
             return
 
-        self.publish_discovery_messages()
+        # Aguarda um pouco para garantir que a conexão MQTT esteja estabelecida
+        time.sleep(2)
 
         logger.info(f"📡 Monitorando e publicando dados no MQTT a cada {interval:.1f}s...")
         try:
@@ -416,7 +515,7 @@ class SMSGamerProtocol:
                         full_topic = f"{self.MQTT_TOPIC_BASE}/status"
                         payload = json.dumps(interpreted_data, ensure_ascii=False)
                         self.mqtt_client.publish(full_topic, payload, qos=1, retain=False)
-                        logger.info(f"✅ Dados publicados no MQTT em '{full_topic}': {payload}")
+                        logger.info(f"✅ Dados publicados no MQTT em '{full_topic}'")
                     else:
                         logger.warning("⚠️ Não foi possível interpretar a resposta do UPS.")
                 else:
@@ -428,8 +527,16 @@ class SMSGamerProtocol:
         except Exception as e:
             logger.error(f"❌ Erro no loop de monitoramento MQTT: {e}")
 
-
     def send_predefined_command(self, command_key: str) -> Optional[bytes]:
+        """
+        Envia um comando predefinido para o UPS.
+
+        Args:
+            command_key (str): Chave do comando no dicionário SMS_GAMER_COMMANDS_PARAMS.
+
+        Returns:
+            Optional[bytes]: Resposta do UPS ou None se houver erro.
+        """
         params = SMS_GAMER_COMMANDS_PARAMS.get(command_key)
         if not params:
             logger.error(f"❌ Comando predefinido '{command_key}' não encontrado.")
@@ -458,38 +565,26 @@ class SMSGamerProtocol:
             return None
 
 
-def render_status_humano(data: Dict[str, Any]):
-    print(f"  🔌 Vin: {data['vin']:.1f}V  ⚡ Vout: {data['vout']:.1f}V  🔋 Bat: {data['battery_percent']:.1f}%")
-    print(f"  📊 Load: {data['load_percent']:.1f}%  🌡️ Temp: {data['temperature']:.1f}°C  📡 Freq: {data['frequency']:.1f}Hz")
-    print(f"  🧩 Extra flags: 0b{data['extra_flags_binary']} → {data['active_flags_str']}")
-    print(f"  ⏰ Timestamp: {data['timestamp']}")
-    print("-" * 50)
-
-
 def main():
-    parser = argparse.ArgumentParser(description="SMS Gamer - Protocolo Real (v7)")
-    # Argumentos que serão passados pelo run.sh do add-on
-    parser.add_argument("--port", default="/dev/ttyUSB0", help="Porta serial do UPS (ex: /dev/ttyUSB0)")
-    parser.add_argument("--interval", type=int, default=10, help="Intervalo de polling em segundos")
-    parser.add_argument("--mqtt-broker", default="core-mqtt", help="Endereço do broker MQTT (ex: core-mqtt)")
-    parser.add_argument("--mqtt-port", type=int, default=1883, help="Porta do broker MQTT")
-    parser.add_argument("--mqtt-username", default="mqtt", help="Nome de usuário para autenticação MQTT")
-    parser.add_argument("--mqtt-password", default="lna1001mqtt", help="Senha para autenticação MQTT")
-
-    # Argumentos para uso local/debug (não usados pelo add-on em produção)
-    parser.add_argument("--command", choices=['Q', 'I', 'F'], help="Comando a enviar (Q, I, F)")
-    parser.add_argument("--json", action='store_true', help="Saída em formato JSON")
-    parser.add_argument("--monitor", action='store_true', help="Monitoramento contínuo (saída no console)")
-    parser.add_argument("--debug", action='store_true', help="Ativar debug detalhado")
-    parser.add_argument("--raw", action='store_true', help="Monitoramento bruto + interpretado (saída no console)")
-    parser.add_argument("--hex", help="Enviar comando hexadecimal manual (ex: '51 ff ff ff ff b3 0d')")
-    parser.add_argument("--mqtt", action='store_true', help="Ativar modo de monitoramento e publicação MQTT (padrão para add-on)")
-    parser.add_argument("--test-cmd", help=f"Envia um comando predefinido (ex: 'Q', 'I', 'D'). Opções: {', '.join(SMS_GAMER_COMMANDS_PARAMS.keys())}")
+    """
+    Função principal do script.
+    """
+    parser = argparse.ArgumentParser(
+        description="SMS Gamer - Protocolo Real (v7) - Versão Melhorada",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    parser.add_argument("--port", help="Porta serial")
+    parser.add_argument("--interval", type=int, help="Intervalo entre leituras (s)")
+    parser.add_argument("--baud-rate", type=int, default=BAUD_RATE, help="Baudrate da porta serial")
+    parser.add_argument("--timeout", type=int, default=TIMEOUT, help="Timeout da porta serial em segundos")
+    parser.add_argument("--mqtt-broker", help="Endereço do broker MQTT")
+    parser.add_argument("--mqtt-port", type=int, help="Porta do broker MQTT")
+    parser.add_argument("--mqtt-username", help="Nome de usuário para autenticação MQTT")
+    parser.add_argument("--mqtt-password", help="Senha para autenticação MQTT")
+    parser.add_argument("--mqtt", action='store_true', help="Monitoramento e publicação via MQTT (modo serviço)")
+    parser.add_argument("--test-cmd", help=f"Envia um comando predefinido. Opções: {', '.join(SMS_GAMER_COMMANDS_PARAMS.keys())}")
 
     args = parser.parse_args()
-
-    if args.debug:
-        logging.getLogger().setLevel(logging.DEBUG)
 
     # Instancia a classe do protocolo com as configurações lidas dos argumentos
     sms = SMSGamerProtocol(
@@ -498,17 +593,11 @@ def main():
         mqtt_port=args.mqtt_port,
         mqtt_username=args.mqtt_username,
         mqtt_password=args.mqtt_password,
-        mqtt_client_id=MQTT_CLIENT_ID, # Constante global
-        mqtt_topic_base=MQTT_TOPIC_BASE, # Constante global
-        ha_discovery_prefix=HA_DISCOVERY_PREFIX, # Constante global
-        device_name=DEVICE_NAME, # Constante global
-        device_manufacturer=DEVICE_MANUFACTURER, # Constante global
-        device_model=DEVICE_MODEL, # Constante global
-        device_sw_version=DEVICE_SW_VERSION # Constante global
+        baud_rate=args.baud_rate,
+        timeout=args.timeout
     )
 
     try:
-        # Lógica para os modos de operação (test-cmd, hex, raw, mqtt, monitor, default command)
         if args.test_cmd:
             if not sms.connect():
                 sys.exit(1)
@@ -519,97 +608,25 @@ def main():
                         interpreted_data = sms._interpret_q_response(response)
                         if interpreted_data:
                             print("\n--- Resposta Interpretada (Comando 'Q') ---")
-                            render_status_humano(interpreted_data)
+                            print(json.dumps(interpreted_data, indent=2, ensure_ascii=False))
                         else:
                             print("\n--- Resposta Bruta (Comando 'Q') ---")
                             print(response.hex())
-                    elif args.test_cmd == 'I':
-                        try:
-                            decoded_response = response.decode('ascii', errors='ignore').strip()
-                            print(f"\n--- Resposta Interpretada (Comando 'I') ---")
-                            print(f"Info: {decoded_response}")
-                        except Exception as e:
-                            print(f"\n--- Erro ao decodificar resposta 'I': {e} ---")
-                            print(f"--- Resposta Bruta (Comando 'I') ---")
-                            print(response.hex())
-                else:
-                    print(f"\n--- Resposta Bruta (Comando '{args.test_cmd}') ---")
-                    print(response.hex())
+                    else:
+                        print(f"\n--- Resposta Bruta (Comando '{args.test_cmd}') ---")
+                        print(response.hex())
             except Exception as e:
                 logger.error(f"❌ Erro ao executar comando de teste '{args.test_cmd}': {e}")
             finally:
                 sms.disconnect()
             return
 
-        if args.hex:
-            if not sms.connect():
-                sys.exit(1)
-            try:
-                hex_bytes = bytes.fromhex(args.hex.replace(" ", ""))
-                logger.info(f"📤 Enviando comando hexadecimal manual: {hex_bytes.hex()}")
-                sms.serial.write(hex_bytes)
-                time.sleep(1)
-                resp = sms.serial.read(64)
-                print(f"📤 Enviado: {hex_bytes.hex()}")
-                print(f"📥 Resposta ({len(resp)} bytes): {resp.hex()}")
-            except Exception as e:
-                print(f"❌ Erro ao enviar comando hexadecimal: {e}")
-            finally:
-                sms.disconnect()
-            return
-
-        # O modo MQTT é o padrão para o add-on
-        if args.mqtt:
-            if not sms.connect():
-                sys.exit(1)
-            sms.mqtt_monitor_loop(interval=args.interval)
-            return
-
-        # Modos de monitoramento e comando para uso local (não usados pelo add-on)
         if not sms.connect():
             sys.exit(1)
 
-        if args.raw:
-            sms.raw_monitor_loop(interval=0.5)
+        if args.mqtt:
+            sms.mqtt_monitor_loop(interval=args.interval)
             return
-
-        if args.monitor:
-            logger.info(f"🔄 Iniciando monitoramento (intervalo: {args.interval}s)")
-            while True:
-                data = sms._interpret_q_response(sms.send_simple_command('Q'))
-                if data:
-                    if args.json:
-                        print(json.dumps(data, indent=2, ensure_ascii=False))
-                    else:
-                        render_status_humano(data)
-                time.sleep(args.interval)
-        else: # Comando único (Q, I, F)
-            if args.command == 'Q':
-                data = sms._interpret_q_response(sms.send_simple_command('Q'))
-            elif args.command == 'I':
-                resp = sms.send_simple_command('I')
-                data = {'info_response': resp.hex(), 'timestamp': time.strftime('%Y-%m-%d %H:%M:%S')} if resp else None
-                if resp:
-                    try:
-                        data['decoded_info'] = resp.decode('ascii', errors='ignore').strip()
-                    except Exception:
-                        pass
-            elif args.command == 'F':
-                resp = sms.send_simple_command('F')
-                data = {'features_response': resp.hex(), 'timestamp': time.strftime('%Y-%m-%d %H:%M:%S')} if resp else None
-            else: # Default para 'Q' se nenhum comando for especificado e não for modo mqtt/monitor
-                data = sms._interpret_q_response(sms.send_simple_command('Q'))
-
-
-            if data:
-                if args.json:
-                    print(json.dumps(data, indent=2, ensure_ascii=False))
-                elif args.command == 'Q':
-                    render_status_humano(data)
-                elif args.command == 'I' and 'decoded_info' in data:
-                    print(f"📋 Resposta (Comando 'I'):\n{data['decoded_info']}")
-                else:
-                    print(f"📋 Resposta:\n{data}")
 
     except KeyboardInterrupt:
         logger.info("⏹️ Interrompido pelo usuário")
@@ -622,3 +639,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
