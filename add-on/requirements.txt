@@ -1,2 +1,9 @@
-pyserial
-paho-mqtt
+# Dependências Python para SMS Gamer UPS Monitor
+# Versões específicas para garantir compatibilidade e reprodutibilidade
+
+# Comunicação serial com o nobreak
+pyserial>=3.5,<4.0
+
+# Cliente MQTT para integração com Home Assistant
+paho-mqtt>=1.6.0,<2.0
+
