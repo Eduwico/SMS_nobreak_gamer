@@ -1,7 +1,7 @@
 {
   "name": "SMS Gamer UPS Monitor",
   "version": "1.1.0",
-  "slug": "sms_gamer_ups_monitor",
+  "slug": "sms_gamer_nobreak",
   "description": "Monitora e controla o nobreak SMS Gamer via MQTT para Home Assistant, com suporte a comandos e configurações avançadas.",
   "url": "https://github.com/Eduwico/SMS_nobreak_gamer",
   "arch": ["armhf", "armv7", "aarch64", "amd64", "i386"],
