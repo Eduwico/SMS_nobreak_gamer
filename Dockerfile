@@ -1,8 +1,8 @@
 # Dockerfile melhorado para SMS Gamer UPS Monitor
 # Baseado nas melhores práticas para add-ons do Home Assistant
 
-ARG BUILDX_ARCH
-FROM ghcr.io/home-assistant/${BUILDX_ARCH}-base:latest
+ARG TARGETARCH
+FROM ghcr.io/home-assistant/${TARGETARCH}-base:latest
 
 # Instala dependências do sistema necessárias para Python e compilação
 # Inclui pacotes comuns para compilação de extensões Python e acesso a dispositivos
