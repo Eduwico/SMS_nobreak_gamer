@@ -1,6 +1,6 @@
 {
   "name": "SMS Gamer UPS Monitor",
-  "version": latest 
+  "version": "latest"
   # <--- Defina explicitamente como latest  
   "slug": "sms_gamer_ups_monitor",
   "description": "Monitora e controla o nobreak SMS Gamer via MQTT para Home Assistant, com suporte a comandos e configurações avançadas.",
