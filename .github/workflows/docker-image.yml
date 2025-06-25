@@ -3,9 +3,11 @@ name: Publicar Imagem Docker do Add-on
 on:
   push:
     branches:
-      - main # Ou a branch principal do seu repositório
+      - main 
+      # Ou a branch principal do seu repositório
     tags:
-      - 'v*.*.*' # Opcional: Dispara em tags como v1.0.0, v1.1.0 etc.
+      - 'v*.*.*' 
+      # Opcional: Dispara em tags como v1.0.0, v1.1.0 etc.
 
 env:
   # Nome da imagem no GHCR. Ajuste conforme necessário.
@@ -17,7 +19,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write # Permissão essencial para escrever no GHCR
+      packages: write 
+      # Permissão essencial para escrever no GHCR
 
     steps:
       - name: Checkout do código
@@ -34,7 +37,8 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }} # Token automático fornecido pelo GitHub Actions
+          password: ${{ secrets.GITHUB_TOKEN }} 
+          # Token automático fornecido pelo GitHub Actions
 
       - name: Gerar tags e metadados para a imagem
         id: meta
@@ -50,8 +54,10 @@ jobs:
       - name: Construir e enviar a imagem Docker
         uses: docker/build-push-action@v5
         with:
-          context: . # Caminho para a pasta do seu Dockerfile
-          platforms: linux/amd64,linux/arm64 # Arquiteturas a serem construídas
+          context: . 
+          # Caminho para a pasta do seu Dockerfile
+          platforms: linux/amd64,linux/arm64 
+          # Arquiteturas a serem construídas
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
