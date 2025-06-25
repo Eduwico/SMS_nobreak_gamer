@@ -25,7 +25,7 @@ WORKDIR /app
 # Copia o arquivo de requisitos e instala as dependências Python
 # Fazendo isso primeiro para aproveitar o cache do Docker
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --break-system-packages -r requirements.txt
 
 # Copia o script principal
 COPY sms_gamer_ups_monitor.py .
@@ -38,14 +38,14 @@ RUN chmod +x run.sh
 LABEL \
     io.hass.name="SMS Gamer UPS Monitor" \
     io.hass.description="Monitora e controla nobreak SMS Gamer via MQTT" \
-    io.hass.arch="${BUILD_ARCH}" \
     io.hass.type="addon" \
-    io.hass.version="${BUILD_VERSION}" \
     maintainer="Eduwico" \
     org.opencontainers.image.title="SMS Gamer UPS Monitor" \
     org.opencontainers.image.description="Home Assistant add-on para monitoramento de nobreak SMS Gamer" \
     org.opencontainers.image.source="https://github.com/Eduwico/SMS_nobreak_gamer" \
     org.opencontainers.image.licenses="GPL-3.0"
+
+# REMOVIDAS AS LINHAS COM io.hass.arch e io.hass.version
 
 # Define o comando padrão para executar o script run.sh
 CMD ["./run.sh"]
