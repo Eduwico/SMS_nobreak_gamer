@@ -1,8 +1,8 @@
 ---
 build_from:
-  aarch64: ghcr.io/hassio-addons/base:latest
-  amd64: ghcr.io/hassio-addons/base:latest
-  armv7: ghcr.io/hassio-addons/base:latest
+  aarch64: ghcr.io/hassio-addons/base:"latest"
+  amd64: ghcr.io/hassio-addons/base:"latest"
+  armv7: ghcr.io/hassio-addons/base:"latest"
 codenotary:
   base_image: codenotary@frenck.dev
   signer: codenotary@eduwico.dev
