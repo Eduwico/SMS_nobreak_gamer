@@ -3,9 +3,9 @@ name: Publicar Imagem Docker do Add-on
 on:
   push:
     branches:
-      - main # Ou a branch principal do seu repositório
+      - main
     tags:
-      - 'v*.*.*' # Dispara em tags como v1.0.0, v1.1.0 etc.
+      - 'v*.*.*'
 
 env:
   IMAGE_NAME: sms_gamer_ups_monitor
@@ -15,28 +15,27 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write # Permissão essencial para escrever no GHCR
+      packages: write
 
     strategy:
-      # Define as plataformas e seus respectivos nomes de imagem base do HA
       matrix:
         include:
           - platform: linux/amd64
             ha_base_image: ghcr.io/home-assistant/amd64-base:latest
           - platform: linux/arm64
-            ha_base_image: ghcr.io/home-assistant/aarch64-base:latest # Correção para arm64
+            ha_base_image: ghcr.io/home-assistant/aarch64-base:latest
           - platform: linux/arm/v7
             ha_base_image: ghcr.io/home-assistant/armv7-base:latest
           - platform: linux/arm/v6
-            ha_base_image: ghcr.io/home-assistant/armhf-base:latest # Correção para armhf
-          #- platform: linux/386
-          #  ha_base_image: ghcr.io/home-assistant/i386-base:latest # Correção para i386
+            ha_base_image: ghcr.io/home-assistant/armhf-base:latest
+          - platform: linux/386
+            ha_base_image: ghcr.io/home-assistant/i386-base:latest
 
     steps:
       - name: Checkout do código
         uses: actions/checkout@v4
 
-      - name: Configurar QEMU (para build multi-arquitetura )
+      - name: Configurar QEMU (para build multi-arquitetura)
         uses: docker/setup-qemu-action@v3
 
       - name: Configurar Buildx (para build multi-arquitetura)
@@ -69,4 +68,4 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            BUILD_FROM=${{ matrix.ha_base_image }} # <--- Passa o argumento BUILD_FROM para o Dockerfile
+            BUILD_FROM=${{ matrix.ha_base_image }} # REMOVA O COMENTÁRIO AQUI
