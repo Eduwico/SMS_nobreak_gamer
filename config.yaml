@@ -5,7 +5,7 @@
   "description": "Monitora e controla o nobreak SMS Gamer via MQTT para Home Assistant, com suporte a comandos e configurações avançadas.",
   "url": "https://github.com/Eduwico/SMS_nobreak_gamer",
   "arch": ["armhf", "armv7", "aarch64", "amd64", "i386"],
-  "startup": "before",
+#  "startup": "before",
   "boot": "auto",
   "ports": {},
   "devices": ["/dev/ttyUSB0", "/dev/ttyUSB1", "/dev/ttyACM0", "/dev/serial/by-id/*"],
