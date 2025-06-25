@@ -3,13 +3,11 @@ name: Publicar Imagem Docker do Add-on
 on:
   push:
     branches:
-      - main # Ou a branch principal do seu repositório
+      - main
     tags:
-      - 'v*.*.*' # Dispara em tags como v1.0.0, v1.1.0 etc.
+      - 'v*.*.*'
 
 env:
-  # Nome da imagem no GHCR. Ajuste conforme necessário.
-  # Para o seu caso, parece ser 'sms_gamer_ups_monitor'
   IMAGE_NAME: sms_gamer_ups_monitor
 
 jobs:
@@ -17,18 +15,30 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write # Permissão essencial para escrever no GHCR
+      packages: write
+
+    strategy:
+      matrix:
+        include:
+          - platform: linux/amd64
+            ha_base_image: ghcr.io/home-assistant/amd64-base:latest
+          - platform: linux/arm64
+            ha_base_image: ghcr.io/home-assistant/aarch64-base:latest # AQUI ESTÁ A CORREÇÃO PARA ARM64
+          - platform: linux/arm/v7
+            ha_base_image: ghcr.io/home-assistant/armv7-base:latest
+          - platform: linux/arm/v6
+            ha_base_image: ghcr.io/home-assistant/armhf-base:latest # E AQUI PARA ARMHF
+          - platform: linux/386
+            ha_base_image: ghcr.io/home-assistant/i386-base:latest
 
     steps:
       - name: Checkout do código
         uses: actions/checkout@v4
 
-      - name: Configurar QEMU (para build multi-arquitetura)
-        # Essencial para emular arquiteturas diferentes da máquina de build (ubuntu-latest é amd64)
+      - name: Configurar QEMU (para build multi-arquitetura )
         uses: docker/setup-qemu-action@v3
 
       - name: Configurar Buildx (para build multi-arquitetura)
-        # Habilita o Buildx, que permite construir imagens para múltiplas plataformas
         uses: docker/setup-buildx-action@v3
 
       - name: Fazer login no GitHub Container Registry
@@ -36,7 +46,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }} # Token automático fornecido pelo GitHub Actions
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Gerar tags e metadados para a imagem
         id: meta
@@ -44,25 +54,18 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=semver,pattern={{version}} # Ex: 1.1.0
-            type=semver,pattern={{major}}.{{minor}} # Ex: 1.1
-            type=semver,pattern={{major}} # Ex: 1
-            type=raw,value=latest,enable={{is_default_branch}} # Tag 'latest' na branch principal
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Construir e enviar a imagem Docker
         uses: docker/build-push-action@v5
         with:
-          context: . # Caminho para a pasta do seu Dockerfile (assumindo que está na raiz do repo)
-          # Plataformas a serem construídas.
-          # Correspondem às arquiteturas listadas no seu config.yaml:
-          # armhf -> linux/arm/v6 (ou v7 se compatível)
-          # armv7 -> linux/arm/v7
-          # aarch64 -> linux/arm64
-          # amd64 -> linux/amd64
-          # i386 -> linux/386
-          platforms: linux/amd64,linux/arm64,linux/arm/v7,linux/arm/v6,linux/386
-          push: true # Define para enviar a imagem para o registro
+          context: .
+          platforms: ${{ matrix.platform }}
+          push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          # build-args não são necessários aqui, pois o Dockerfile usa TARGETARCH
-          # que é automaticamente definido pelo buildx para cada plataforma.
+          build-args: |
+            BUILD_FROM=${{ matrix.ha_base_image }} # Passa o argumento BUILD_FROM para o Dockerfile
