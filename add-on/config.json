@@ -30,5 +30,6 @@
     "mqtt_password": "password"
   },
   "image": "ghcr.io/eduwico/sms_gamer_ups_monitor-{arch}"
+  "icon": "icon.png"
 }
 
