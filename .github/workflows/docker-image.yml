@@ -68,4 +68,4 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            BUILD_FROM=${{ matrix.ha_base_image }} # REMOVA O COMENTÁRIO AQUI
+            BUILD_FROM=${{ matrix.ha_base_image }}
