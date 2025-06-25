@@ -5,16 +5,19 @@ ARG BUILD_FROM
 FROM $BUILD_FROM
 
 # Instala dependências do sistema necessárias para Python e compilação
-# 'python3-dev' fornece os cabeçalhos Python para compilação de extensões C.
-# 'build-base' fornece ferramentas de compilação como gcc, make, etc.
-RUN apk add --no-cache \
+# Inclui pacotes comuns para compilação de extensões Python e acesso a dispositivos
+RUN apk update && apk add --no-cache \
     python3 \
     python3-dev \
     py3-pip \
     build-base \
-    # Opcional: Se houver problemas de SSL/TLS ou FFI, adicione: openssl-dev libffi-dev
-    && rm -rf /var/cache/apk/* 
-    # Limpa o cache do apk para reduzir o tamanho da imagem
+    libffi-dev \
+    openssl-dev \
+    # Adicionais que podem ser necessários para certas extensões C ou interações de baixo nível
+    # Mesmo que pyserial seja Python puro, ele interage com o sistema de arquivos e dispositivos
+    # zlib-dev (comum para compressão/descompressão)
+    # udev-dev (para algumas interações com dispositivos, embora menos comum para pyserial diretamente)
+    && rm -rf /var/cache/apk/*
 
 # Define o diretório de trabalho dentro do container
 WORKDIR /app
