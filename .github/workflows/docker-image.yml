@@ -55,5 +55,7 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            BUILD_FROM=ghcr.io/home-assistant/amd64-base:latest # <--- ADICIONE ESTA SEÇÃO
 
 
