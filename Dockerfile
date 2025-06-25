@@ -4,8 +4,17 @@
 ARG BUILD_FROM
 FROM $BUILD_FROM
 
-# Instala dependências do sistema necessárias (como pip)
-RUN apk add --no-cache py3-pip
+# Instala dependências do sistema necessárias para Python e compilação
+# 'python3-dev' fornece os cabeçalhos Python para compilação de extensões C.
+# 'build-base' fornece ferramentas de compilação como gcc, make, etc.
+RUN apk add --no-cache \
+    python3 \
+    python3-dev \
+    py3-pip \
+    build-base \
+    # Opcional: Se houver problemas de SSL/TLS ou FFI, adicione: openssl-dev libffi-dev
+    && rm -rf /var/cache/apk/* 
+    # Limpa o cache do apk para reduzir o tamanho da imagem
 
 # Define o diretório de trabalho dentro do container
 WORKDIR /app
