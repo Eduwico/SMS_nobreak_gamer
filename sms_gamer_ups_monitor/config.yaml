@@ -4,7 +4,7 @@ slug: sms_gamer_ups_monitor
 description: Monitora e controla o nobreak SMS Gamer via MQTT para Home
   Assistant, com suporte a comandos, sensores e configuração via Discovery.
 version: v1.1.6
-url: https://github.com/eduwico/SMS_nobreak_gamer
+url: https://github.com/Eduwico/SMS_nobreak_gamer
 arch:
   - aarch64
   - armv7
