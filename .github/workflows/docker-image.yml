@@ -8,7 +8,7 @@ on:
 
 env:
   IMAGE_NAME: sms_gamer_ups_monitor
-  REPO_OWNER: eduwico
+  REPO_OWNER: du-costa
 
 jobs:
   build-and-push:
@@ -50,7 +50,7 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: eduwico
+          username: du-costa
           password: ${{ secrets.GHCR_PAT }}
 
       - name: Obter tag atual
