@@ -2,11 +2,8 @@ name: Publicar Imagem Docker do Add-on
 
 on:
   push:
-    branches:
-      - main
     tags:
       - 'v*.*.*'
-
 env:
   IMAGE_NAME: sms_gamer_ups_monitor
 
