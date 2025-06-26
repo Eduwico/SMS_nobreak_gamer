@@ -1,6 +1,8 @@
 # Dockerfile melhorado para SMS Gamer UPS Monitor
 # Baseado nas melhores práticas para add-ons do Home Assistant
 
+ARG BUILD_FROM=ghcr.io/home-assistant/amd64-base:latest
+
 ARG BUILD_FROM 
 # <--- Mude de TARGETARCH para BUILD_FROM
 FROM $BUILD_FROM 
