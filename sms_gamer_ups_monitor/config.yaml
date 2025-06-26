@@ -5,21 +5,30 @@ description: >-
   com suporte a comandos, sensores e configuração via Discovery.
 version: "v1.1.4"
 url: https://github.com/Eduwico/SMS_nobreak_gamer
+
 arch:
-  - aarch64    # Raspberry Pi 4 e superiores (64-bit)
-  - armv7      # Raspberry Pi 2/3 (32-bit)
-  - armhf      # Raspberry Pi Zero e similares (32-bit)
-  - amd64      # PCs e servidores x86_64
-  - i386       # x86 32-bit (opcional, legado)
+  # Raspberry Pi 4 e superiores (64-bit)
+  - aarch64
+  # Raspberry Pi 2/3 (32-bit)
+  - armv7
+  # Raspberry Pi Zero e similares (32-bit)
+  - armhf
+  # PCs e servidores x86_64
+  - amd64
+  # x86 32-bit (opcional, legado)
+  - i386
+
 startup: services
 boot: auto
 host_network: false
-privileged: false
+
 devices:
   - /dev/ttyUSB0
   - /dev/serial/by-id/*
+
 ports: {}
 map: []
+
 options:
   serial_port: /dev/ttyUSB0
   poll_interval: 10
@@ -29,6 +38,7 @@ options:
   mqtt_port: 1883
   mqtt_username: ""
   mqtt_password: ""
+
 schema:
   serial_port: str
   poll_interval: int(1,300)
@@ -38,4 +48,5 @@ schema:
   mqtt_port: int(1,65535)
   mqtt_username: str
   mqtt_password: password
+
 image: ghcr.io/eduwico/sms_gamer_ups_monitor-{arch}
