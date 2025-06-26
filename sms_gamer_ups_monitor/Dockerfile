@@ -39,10 +39,10 @@ LABEL \
     io.hass.name="SMS Gamer UPS Monitor" \
     io.hass.description="Monitora e controla nobreak SMS Gamer via MQTT" \
     io.hass.type="addon" \
-    maintainer="Eduwico" \
+    maintainer="du-costa" \
     org.opencontainers.image.title="SMS Gamer UPS Monitor" \
     org.opencontainers.image.description="Home Assistant add-on para monitoramento de nobreak SMS Gamer" \
-    org.opencontainers.image.source="https://github.com/Eduwico/SMS_nobreak_gamer" \
+    org.opencontainers.image.source="https://github.com/du-costa/sms_nobreak_serial" \
     org.opencontainers.image.licenses="GPL-3.0"
 
 # Define o comando padrão para executar o script run.sh
