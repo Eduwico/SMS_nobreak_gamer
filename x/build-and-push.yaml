@@ -1,4 +1,4 @@
-# .github/workflows/build-and-push.yaml
+"""" # .github/workflows/build-and-push.yaml
 name: Build and Push Docker image
 
 on:
@@ -38,3 +38,4 @@ jobs:
         tags: |
           ghcr.io/eduwico/sms_gamer_ups_monitor:latest
           ghcr.io/eduwico/sms_gamer_ups_monitor:${{ github.ref_name }}
+"""
