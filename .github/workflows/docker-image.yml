@@ -50,8 +50,8 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          username: eduwico
+          password: ${{ secrets.GHCR_PAT }}
 
       - name: Obter tag atual
         id: vars
