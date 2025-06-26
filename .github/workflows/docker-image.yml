@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - 'v*.*.*'
+
 env:
   IMAGE_NAME: sms_gamer_ups_monitor
 
@@ -14,20 +15,6 @@ jobs:
       contents: read
       packages: write
 
-    strategy:
-      matrix:
-        include:
-          - platform: linux/amd64
-            ha_base_image: ghcr.io/home-assistant/amd64-base:latest
-          - platform: linux/arm64
-            ha_base_image: ghcr.io/home-assistant/aarch64-base:latest
-          - platform: linux/arm/v7
-            ha_base_image: ghcr.io/home-assistant/armv7-base:latest
-          - platform: linux/arm/v6
-            ha_base_image: ghcr.io/home-assistant/armhf-base:latest
-          - platform: linux/386
-            ha_base_image: ghcr.io/home-assistant/i386-base:latest
-
     steps:
       - name: Checkout do código
         uses: actions/checkout@v4
@@ -35,17 +22,19 @@ jobs:
       - name: Configurar QEMU (para build multi-arquitetura)
         uses: docker/setup-qemu-action@v3
 
-      - name: Configurar Buildx (para build multi-arquitetura)
+      - name: Configurar Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          buildkitd-flags: --debug
 
-      - name: Fazer login no GitHub Container Registry
+      - name: Login no GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Gerar tags e metadados para a imagem
+      - name: Gerar metadados da imagem
         id: meta
         uses: docker/metadata-action@v5
         with:
@@ -56,14 +45,14 @@ jobs:
             type=semver,pattern={{major}}
             type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Construir e enviar a imagem Docker
+      - name: Build e push multiarch
         uses: docker/build-push-action@v5
         with:
           context: ./sms_gamer_ups_monitor
           file: ./sms_gamer_ups_monitor/Dockerfile
-          platforms: ${{ matrix.platform }}
+          platforms: linux/amd64,linux/arm64,linux/arm/v7,linux/arm/v6,linux/386
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            BUILD_FROM=${{ matrix.ha_base_image }}
+            BUILD_FROM=ghcr.io/home-assistant/amd64-base:latest
