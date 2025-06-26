@@ -1,22 +1,25 @@
 name: SMS Gamer UPS Monitor
-version: "v1.1.4"
 slug: sms_gamer_ups_monitor
-description: Monitora e controla o nobreak SMS Gamer via MQTT para Home Assistant, com suporte a comandos e configurações avançadas.
+description: >-
+  Monitora e controla o nobreak SMS Gamer via MQTT para Home Assistant,
+  com suporte a comandos, sensores e configuração via Discovery.
+version: "1.1.4"
 url: https://github.com/Eduwico/SMS_nobreak_gamer
 arch:
-  - armhf
-  - armv7
-  - aarch64
-  - amd64
-  - i386
-# startup: before
+  - aarch64    # Raspberry Pi 4 e superiores (64-bit)
+  - armv7      # Raspberry Pi 2/3 (32-bit)
+  - armhf      # Raspberry Pi Zero e similares (32-bit)
+  - amd64      # PCs e servidores x86_64
+  - i386       # x86 32-bit (opcional, legado)
+startup: services
 boot: auto
-ports: {}
+host_network: false
+privileged: false
 devices:
   - /dev/ttyUSB0
-  - /dev/ttyUSB1
-  - /dev/ttyACM0
   - /dev/serial/by-id/*
+ports: {}
+map: []
 options:
   serial_port: /dev/ttyUSB0
   poll_interval: 10
@@ -28,7 +31,7 @@ options:
   mqtt_password: ""
 schema:
   serial_port: str
-  poll_interval: int(1,300 )
+  poll_interval: int(1,300)
   baud_rate: int(1200,115200)
   timeout: int(1,30)
   mqtt_broker: str
