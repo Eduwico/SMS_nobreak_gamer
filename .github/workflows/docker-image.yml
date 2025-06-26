@@ -62,7 +62,8 @@ jobs:
       - name: Construir e enviar a imagem Docker
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: ./sms_gamer_ups_monitor
+          file: ./sms_gamer_ups_monitor/Dockerfile
           platforms: ${{ matrix.platform }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
