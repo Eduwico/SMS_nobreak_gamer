@@ -1,0 +1,2 @@
+#!/usr/bin/with-contenv bash
+exec python3 /app/sms_gamer_ups_monitor.py
