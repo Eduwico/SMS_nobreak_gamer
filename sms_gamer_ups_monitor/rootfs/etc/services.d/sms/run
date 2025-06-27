@@ -9,7 +9,7 @@
 # - Validação básica de parâmetros
 # - Logs mais informativos
 # ==============================================================================
-echo "🪫 Add-on SMS UPS - Versão ${ADDON_VERSION}"
+echo "🪫 Add-on SMS UPS"
 # Read add-on options using bashio
 SERIAL_PORT=$(bashio::config "serial_port")
 POLL_INTERVAL=$(bashio::config "poll_interval")
