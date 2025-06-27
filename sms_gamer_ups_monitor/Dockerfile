@@ -49,3 +49,4 @@ LABEL \
   org.opencontainers.image.description="Home Assistant add-on para monitoramento de nobreak SMS Gamer" \
   org.opencontainers.image.source="https://github.com/du-costa/sms_nobreak_serial" \
   org.opencontainers.image.licenses="GPL-3.0"
+ENTRYPOINT ["/init"]
