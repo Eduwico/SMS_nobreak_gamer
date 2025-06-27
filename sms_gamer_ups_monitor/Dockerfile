@@ -19,6 +19,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY sms_gamer_ups_monitor.py /app/
 COPY rootfs/ /  # importa estrutura s6-overlay
 
+RUN chmod +x /etc/services.d/sms/run
 
 # Adiciona labels para metadados do container
 LABEL \
@@ -30,6 +31,4 @@ LABEL \
     org.opencontainers.image.description="Home Assistant add-on para monitoramento de nobreak SMS Gamer" \
     org.opencontainers.image.source="https://github.com/du-costa/sms_nobreak_serial" \
     org.opencontainers.image.licenses="GPL-3.0"
-
-# Define o comando padrão para executar o script run.sh
 
