@@ -20,7 +20,7 @@ COPY config.yaml icon.png logo.png ./
 COPY rootfs/ /
 
 # Instala dependências Python
-RUN pip install --no-cache-dir -r requirements.txt
+RUN python3 -m pip install --no-cache-dir -r requirements.txt
 
 # Garante permissão de execução ao serviço do S6 Overlay
 RUN chmod +x /etc/services.d/sms/run
