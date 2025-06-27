@@ -54,7 +54,7 @@ fi
 bashio::log.info "Iniciando monitoramento..."
 
 # Execute o script Python, passando as configurações como argumentos
-python3 sms_gamer_ups_monitor.py \
+exec python3 sms_gamer_ups_monitor.py \
     --port "${SERIAL_PORT}" \
     --interval "${POLL_INTERVAL}" \
     --baud-rate "${BAUD_RATE}" \
