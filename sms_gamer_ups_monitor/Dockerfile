@@ -4,12 +4,19 @@ FROM $BUILD_FROM
 ENV LANG C.UTF-8
 ENV S6_BEHAVIOUR_IF_STAGE2_FAILS=2
 
-# Define diretório de trabalho
+# Define diretório de trabalho para o app
 WORKDIR /app
 
-# Copia arquivos necessários
-COPY requirements.txt .
+# Copia o script principal para /app
 COPY sms_gamer_ups_monitor.py /app/
+
+# Copia o requirements.txt da raiz para o diretório atual (/app)
+COPY requirements.txt /app/
+
+# Copia arquivos do add-on esperados pelo Supervisor para a raiz do container
+COPY config.yaml icon.png logo.png ./
+
+# Copia estrutura s6-overlay para o sistema
 COPY rootfs/ /
 
 # Instala dependências Python
