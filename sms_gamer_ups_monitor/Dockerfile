@@ -8,7 +8,7 @@ ENV LANG=C.UTF-8 \
 WORKDIR /app
 
 # Instala dependências do sistema e Python
-RUN apk update && apk add --no-cache \
+RUN apk add --no-cache \
     python3 \
     py3-pip \
     py3-setuptools \
@@ -33,7 +33,7 @@ COPY rootfs/ /
 RUN python3 -m pip install --no-cache-dir --break-system-packages -r requirements.txt
 
 # Permissão para o serviço s6
-RUN chmod +x /etc/services.d/sms/run
+RUN chmod a+x /etc/services.d/sms/run
 
 # Define versão via argumento
 ARG TAG
