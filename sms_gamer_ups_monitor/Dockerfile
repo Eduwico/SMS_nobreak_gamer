@@ -21,6 +21,9 @@ COPY rootfs/ /  # importa estrutura s6-overlay
 
 RUN chmod +x /etc/services.d/sms/run
 
+ARG TAG
+ENV ADDON_VERSION=$TAG
+
 # Adiciona labels para metadados do container
 LABEL \
     io.hass.name="SMS Gamer UPS Monitor" \
