@@ -16,6 +16,8 @@ boot: auto
 host_network: false
 devices:
   - /dev/ttyUSB0
+  - /dev/ttyUSB1
+  - /dev/serial/by-id/usb-Prolific_Technology_Inc._USB-Serial_Controller_AQAZb135B02-if00-port0
   - /dev/serial/by-id/*
 ports: {}
 map: []
