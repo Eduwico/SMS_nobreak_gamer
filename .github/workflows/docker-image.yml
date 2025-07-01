@@ -1,5 +1,4 @@
-name: Publicar Imagem Docker do Add-on 
-
+name: Publicar Imagem Docker do Add-on
 
 on:
   push:
@@ -50,16 +49,15 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: du-costa
+          username: ${{ env.REPO_OWNER }}
           password: ${{ secrets.GHCR_PAT }}
 
       - name: Obter tag atual
-        id: vars
-        run: echo "TAG=${GITHUB_REF#refs/}" >> $GITHUB_ENV
+        id: get_tag
+        run: echo "tag=${GITHUB_REF##*/}" >> $GITHUB_OUTPUT
 
       - name: Atualizar versão no config.yaml
-        run: |
-          sed -i "s/^version: .*/version: ${GITHUB_REF#refs/}/" /config.yaml
+        run: sed -i "s/^version: .*/version: ${{ steps.get_tag.outputs.tag }}/" config.yaml
 
       - name: Build e push da imagem ${{ matrix.arch }}
         uses: docker/build-push-action@v5
@@ -68,7 +66,7 @@ jobs:
           file: ./Dockerfile
           platforms: ${{ matrix.platform }}
           push: true
-          tags: |
-            ghcr.io/${{ env.REPO_OWNER }}/${{ env.IMAGE_NAME }}-${{ matrix.arch }}:${{ env.TAG }}
+          tags: ghcr.io/${{ env.REPO_OWNER }}/${{ env.IMAGE_NAME }}-${{ matrix.arch }}:${{ steps.get_tag.outputs.tag }}
           build-args: |
             BUILD_FROM=${{ matrix.base }}
+            TAG=${{ steps.get_tag.outputs.tag }}
