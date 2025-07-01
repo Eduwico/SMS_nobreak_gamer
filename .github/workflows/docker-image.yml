@@ -64,8 +64,8 @@ jobs:
       - name: Build e push da imagem ${{ matrix.arch }}
         uses: docker/build-push-action@v5
         with:
-          context: ./sms_gamer_ups_monitor
-          file: ./sms_gamer_ups_monitor/Dockerfile
+          context: ./
+          file: ./Dockerfile
           platforms: ${{ matrix.platform }}
           push: true
           tags: |
