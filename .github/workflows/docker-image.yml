@@ -38,7 +38,8 @@ jobs:
       - name: Build multi-arch e push
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: ./sms_nobreak_addon
+          file: ./sms_nobreak_addon/Dockerfile
           platforms: linux/amd64,linux/armv7,linux/armhf,linux/386,linux/aarch64
           push: true
           tags: |
