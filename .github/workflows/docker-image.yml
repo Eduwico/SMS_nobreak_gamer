@@ -5,7 +5,6 @@ on:
     branches:
       - '**'
     tags:
-      - '*'
       - '*.*'
       - '*.*.*'
 
@@ -50,3 +49,5 @@ jobs:
             --tag ${{ steps.version.outputs.tag }}
             --latest
 
+      - name: ✅ Build finalizado
+        run: echo "Imagem enviada para ghcr.io/du-costa/sms_nobreak_serial:${{ steps.version.outputs.tag }}"
