@@ -28,7 +28,7 @@ COPY requirements.txt /
 COPY config.yaml icon.png logo.png ./
 
 # Copia os arquivos do serviço (inclui rootfs/run como /run)
-COPY rootfs/ /
+COPY rootfs/run /run
 
 # Instala dependências do Python
 RUN python3 -m pip install --no-cache-dir --break-system-packages -r /requirements.txt
