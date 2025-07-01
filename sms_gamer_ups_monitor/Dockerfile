@@ -30,7 +30,7 @@ COPY config.yaml icon.png logo.png ./
 COPY rootfs/ /
 
 # Instala dependências Python
-RUN python3 -m pip install --no-cache-dir --break-system-packages -r requirements.txt
+RUN python3 -m pip install --no-cache-dir --break-system-packages -r /requirements.txt
 
 # Permissão para o serviço s6
 RUN chmod a+x /run
