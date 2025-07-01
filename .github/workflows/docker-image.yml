@@ -45,7 +45,6 @@ jobs:
             --target /data/sms_nobreak_addon \
             --docker-hub ghcr.io/${{ github.repository_owner }} \
             --version ${{ steps.version.outputs.tag }} \
-            --auth du-costa:${{ secrets.GHCR_PAT }}
 
       - name: ✅ Build finalizado
         run: echo "Imagem enviada para ghcr.io/du-costa/sms_nobreak_serial:${{ steps.version.outputs.tag }}"
