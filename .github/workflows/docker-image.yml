@@ -39,7 +39,7 @@ jobs:
 
 
       - name: 👷 Build via Home Assistant Builder
-        uses: home-assistant/builder@3.6.0
+        uses: home-assistant/builder@2025.03.0
         with:
           args: |
 
