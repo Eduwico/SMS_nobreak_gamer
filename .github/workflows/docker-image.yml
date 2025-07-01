@@ -59,7 +59,7 @@ jobs:
 
       - name: Atualizar versão no config.yaml
         run: |
-          sed -i "s/^version: .*/version: ${GITHUB_REF#refs/tags\/}/" sms_gamer_ups_monitor/config.yaml
+          sed -i "s/^version: .*/version: ${GITHUB_REF#refs/tags\/}/" config.yaml
 
       - name: Build e push da imagem ${{ matrix.arch }}
         uses: docker/build-push-action@v5
