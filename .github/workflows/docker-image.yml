@@ -2,40 +2,49 @@ name: Build and Push Docker Image
 
 on:
   push:
+    branches:
+      - '**'
     tags:
+      - '*'
       - '*.*'
+      - '*.*.*'
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout do repositório
+      - name: 📥 Checkout do repositório
         uses: actions/checkout@v4
 
-      - name: Configurar QEMU
+      - name: ⚙️ Configurar QEMU
         uses: docker/setup-qemu-action@v3
 
-      - name: Configurar Buildx
+      - name: ⚙️ Configurar Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login no GitHub Container Registry
+      - name: 🔐 Login no GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: du-costa
           password: ${{ secrets.GHCR_PAT }}
 
-      - name: Extrair tag da versão
-        id: get_tag
-        run: echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
-
-      - name: Atualizar versão no config.yaml
+      - name: 🔎 Definir tag da imagem
+        id: version
         run: |
-          tag="${{ steps.get_tag.outputs.tag }}"
-          sed -i "s/^version: .*/version: \"${tag}\"/" config.yaml
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+          else
+            BRANCH="${GITHUB_REF#refs/heads/}"
+            echo "tag=dev-${BRANCH}" >> "$GITHUB_OUTPUT"
+          fi
 
-      - name: Build multi-arch e push
+      - name: 📝 Atualizar versão no config.yaml
+        run: |
+          sed -i "s/^version: .*/version: \"${{ steps.version.outputs.tag }}\"/" sms_nobreak_addon/config.yaml
+
+      - name: 🛠️ Build multi-arch e push
         uses: docker/build-push-action@v5
         with:
           context: ./sms_nobreak_addon
@@ -44,4 +53,4 @@ jobs:
           push: true
           tags: |
             ghcr.io/${{ github.repository }}:latest
-            ghcr.io/${{ github.repository }}:${{ steps.get_tag.outputs.tag }}
+            ghcr.io/${{ github.repository }}:${{ steps.version.outputs.tag }}
