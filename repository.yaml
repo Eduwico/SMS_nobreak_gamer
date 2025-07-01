@@ -1,7 +1,6 @@
-addons:
-  - name: SMS Gamer UPS Monitor
-    slug: sms_nobreak_serial
-    description: Monitoramento e controle do nobreak SMS Gamer via MQTT para Home Assistant (Experimental!)
-    url: https://github.com/du-costa/sms_nobreak_serial
-    maintainer: "@du-costa"
-    path: sms_nobreak_addon
+name: SMS Gamer UPS Monitor
+slug: sms_nobreak_serial
+description: Monitoramento e controle do nobreak SMS Gamer via MQTT para Home Assistant (Experimental!)
+url: https://github.com/du-costa/sms_nobreak_serial
+maintainer: "@du-costa"
+path: sms_nobreak_addon
