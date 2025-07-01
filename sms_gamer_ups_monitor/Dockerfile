@@ -5,7 +5,7 @@ ENV LANG=C.UTF-8 \
     S6_BEHAVIOUR_IF_STAGE2_FAILS=2
 
 # Define diretório de trabalho
-WORKDIR /app
+# WORKDIR /app
 
 # Instala dependências do sistema e Python
 RUN apk add --no-cache \
@@ -22,8 +22,8 @@ RUN apk add --no-cache \
     && rm -rf /var/cache/apk/*
 
 # Copia os arquivos do projeto
-COPY sms_gamer_ups_monitor.py /app/
-COPY requirements.txt /app/
+COPY sms_gamer_ups_monitor.py /
+COPY requirements.txt /
 
 # Copia arquivos do add-on esperados pelo Supervisor
 COPY config.yaml icon.png logo.png ./
@@ -33,7 +33,7 @@ COPY rootfs/ /
 RUN python3 -m pip install --no-cache-dir --break-system-packages -r requirements.txt
 
 # Permissão para o serviço s6
-RUN chmod a+x /etc/services.d/sms/run
+RUN chmod a+x /run
 
 # Define versão via argumento
 ARG TAG
