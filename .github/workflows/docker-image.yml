@@ -1,41 +1,16 @@
-name: Publicar Imagem Docker do Add-on
+name: Build and Push Docker Image
+
 on:
   push:
     tags:
       - 'v*.*.*'
 
-env:
-  IMAGE_NAME: sms_nobreak_serial
-  REPO_OWNER: du-costa
-
 jobs:
-  build-and-push:
+  build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-
-    strategy:
-      matrix:
-        include:
-          - arch: amd64
-            platform: linux/amd64
-            base: ghcr.io/home-assistant/amd64-base:latest
-          - arch: aarch64
-            platform: linux/arm64
-            base: ghcr.io/home-assistant/aarch64-base:latest
-          - arch: armv7
-            platform: linux/arm/v7
-            base: ghcr.io/home-assistant/armv7-base:latest
-          - arch: armhf
-            platform: linux/arm/v6
-            base: ghcr.io/home-assistant/armhf-base:latest
-          - arch: i386
-            platform: linux/386
-            base: ghcr.io/home-assistant/i386-base:latest
 
     steps:
-      - name: Checkout do código
+      - name: Checkout do repositório
         uses: actions/checkout@v4
 
       - name: Configurar QEMU
@@ -48,24 +23,22 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: ${{ env.REPO_OWNER }}
-          password: ${{ secrets.GHCR_PAT }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Obter tag atual
+      - name: Extrair tag da versão
         id: get_tag
-        run: echo "tag=${GITHUB_REF##*/}" >> $GITHUB_OUTPUT
+        run: echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
 
       - name: Atualizar versão no config.yaml
-        run: sed -i "s/^version: .*/version: ${{ steps.get_tag.outputs.tag }}/" config.yaml
+        run: |
+          tag="${{ steps.get_tag.outputs.tag }}"
+          sed -i "s/^version: .*/version: \"${tag}\"/" config.yaml
 
-      - name: Build e push da imagem ${{ matrix.arch }}
+      - name: Build e push da imagem Docker
         uses: docker/build-push-action@v5
         with:
-          context: ./
-          file: ./Dockerfile
-          platforms: ${{ matrix.platform }}
+          context: .
           push: true
-          tags: ghcr.io/${{ env.REPO_OWNER }}/${{ env.IMAGE_NAME }}-${{ matrix.arch }}:${{ steps.get_tag.outputs.tag }}
-          build-args: |
-            BUILD_FROM=${{ matrix.base }}
-            TAG=${{ steps.get_tag.outputs.tag }}
+          tags: ghcr.io/${{ github.repository }}:latest,ghcr.io/${{ github.repository }}:${{ steps.get_tag.outputs.tag }}
+          platforms: "linux/amd64,linux/armv7,linux/aarch64"
