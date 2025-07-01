@@ -64,5 +64,4 @@ exec python3 /sms_gamer_ups_monitor.py \
     --mqtt-port "${MQTT_PORT}" \
     --mqtt-username "${MQTT_USERNAME}" \
     --mqtt-password "${MQTT_PASSWORD}" \
-    --mqtt # Ativa o modo MQTT do script \
     --mqtt
