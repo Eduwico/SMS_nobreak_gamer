@@ -3,7 +3,7 @@ name: SMS Gamer UPS Monitor
 slug: sms_gamer_ups_monitor
 description: Monitora e controla o nobreak SMS Gamer via MQTT para Home - 
   Assistant, com suporte a comandos, sensores e configuração via Discovery. (EXPERIMENTAL)
-version: v1.1.25
+version: v1.1.26
 url: https://github.com/du-costa/sms_nobreak_serial
 arch:
   - aarch64
