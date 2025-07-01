@@ -40,7 +40,7 @@ jobs:
 
 
       - name: 👷 Build via Home Assistant Builder
-        uses: home-assistant/builder@main
+        uses: home-assistant/builder@master
         with:
           args: |
 
