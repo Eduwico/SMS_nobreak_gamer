@@ -7,7 +7,7 @@ on:
       - 'v*.*.*'
 
 env:
-  IMAGE_NAME: sms_gamer_ups_monitor
+  IMAGE_NAME: sms_nobreak_serial
   REPO_OWNER: du-costa
 
 jobs:
@@ -53,13 +53,13 @@ jobs:
           username: du-costa
           password: ${{ secrets.GHCR_PAT }}
 
-  #    - name: Obter tag atual
-  #      id: vars
-   #     run: echo "TAG=${GITHUB_REF#refs/}" >> $GITHUB_ENV
+      - name: Obter tag atual
+        id: vars
+        run: echo "TAG=${GITHUB_REF#refs/}" >> $GITHUB_ENV
 
-  #    - name: Atualizar versão no config.yaml
-   #     run: |
-   #       sed -i "s/^version: .*/version: ${GITHUB_REF#refs/}/" /config.yaml
+      - name: Atualizar versão no config.yaml
+        run: |
+          sed -i "s/^version: .*/version: ${GITHUB_REF#refs/}/" /config.yaml
 
       - name: Build e push da imagem ${{ matrix.arch }}
         uses: docker/build-push-action@v5
