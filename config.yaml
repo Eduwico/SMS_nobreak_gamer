@@ -1,8 +1,7 @@
 ---
 name: SMS Gamer UPS Monitor
 slug: sms_nobreak_serial
-description: Monitora e controla o nobreak SMS Gamer via MQTT para Home - 
-  Assistant, com suporte a comandos, sensores e configuração via Discovery. (EXPERIMENTAL)
+description: Monitora e controla o nobreak SMS Gamer via MQTT para Home Assistant, com suporte a comandos, sensores e configuração via Discovery. (EXPERIMENTAL)
 version: v1.1.31
 url: https://github.com/du-costa/sms_nobreak_serial
 arch:
@@ -14,6 +13,7 @@ arch:
 startup: services
 boot: auto
 host_network: false
+uart: true
 devices:
   - /dev/ttyUSB0
   - /dev/ttyUSB1
@@ -40,4 +40,3 @@ schema:
   mqtt_username: str?
   mqtt_password: password?
 image: ghcr.io/du-costa/sms_nobreak_serial-{arch}
-full_access: true 
