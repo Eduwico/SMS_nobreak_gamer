@@ -12,6 +12,7 @@ arch:
 
 startup: services
 boot: auto
+init: true
 host_network: false
 uart: true
 devices:
