@@ -44,6 +44,7 @@ jobs:
           args: |
 
             --target sms_nobreak_addon
+            --path .
             --docker-hub ghcr.io/${{ github.repository_owner }}
             --all
             --tag ${{ steps.version.outputs.tag }}
