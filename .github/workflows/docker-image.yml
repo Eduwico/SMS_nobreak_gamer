@@ -35,10 +35,12 @@ jobs:
           tag="${{ steps.get_tag.outputs.tag }}"
           sed -i "s/^version: .*/version: \"${tag}\"/" config.yaml
 
-      - name: Build e push da imagem Docker
+      - name: Build multi-arch e push
         uses: docker/build-push-action@v5
         with:
           context: .
+          platforms: linux/amd64,linux/armv7,linux/aarch64
           push: true
-          tags: ghcr.io/${{ github.repository }}:latest,ghcr.io/${{ github.repository }}:${{ steps.get_tag.outputs.tag }}
-          platforms: "linux/amd64,linux/armv7,linux/aarch64"
+          tags: |
+            ghcr.io/${{ github.repository }}:latest
+            ghcr.io/${{ github.repository }}:${{ steps.get_tag.outputs.tag }}
